@@ -1,0 +1,116 @@
+- name: app
+  disk: 1000
+  type: "ruby:2.6"
+  variables:
+      env:
+          NVM_VERSION: "v0.35.3"
+          NODE_VERSION: "12.16.3"
+  size: M
+  resources:
+     base_memory: 1001 # between 64 and 1024 max
+     memory_ratio: 512 # integer between 128 and 1024 max
+  hooks:
+      build: |
+          # move into place our config. We are not using the platform_sh_rails helper GEM
+          mv config/discourse.platformsh.conf config/discourse.conf
+          # move into place required binaries
+          mv _bin/* $HOME/.global/bin/*
+          mv public/ _public/
+          # create symbolic link form app/tmp to /tmp so Bootsnap doesn't die.
+          ln -s /tmp tmp
+          # install nvm
+          unset NPM_CONFIG_PREFIX
+          curl -o- https://raw.githubusercontent.com/creationix/nvm/$NVM_VERSION/install.sh | dash
+          export NVM_DIR="$PLATFORM_APP_DIR/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          nvm install $NODE_VERSION
+          nvm use $NODE_VERSION
+          # Install globally some more required npm packages that are not in package.json
+          npm i -g "yarn" "svgo" "gifsicle@4.0.1" "uglify@<3"
+          # install the version of bundler specified in Gemfile.lock (should not be necessary with ruby 2.7 and up. This is a Gem bug.)
+          bundle update --bundler
+          gem install bundler -v "$(grep -A 1 "BUNDLED WITH" Gemfile.lock | tail -n 1)"
+          # Export the current ruby version
+          RUBY_VERSION=$(ruby -e"puts RUBY_VERSION")
+          # Install production Gems (bundler deprecated using the --without flag)
+          bundle install --retry 3 --jobs 4
+      deploy: |
+          [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+          bundle exec rake db:migrate
+      post_deploy: |
+          rsync -avq --update _public/ public/
+          set -x
+          bundle exec rake assets:precompile
+  dependencies:
+    python:
+      brotli: "*"
+  relationships:
+      database: "database:postgresql"
+      cache: "cache:redis"
+  mounts:
+      'app/assets/javascripts/plugins':
+          source: service
+          service: files
+          source_path: files/app/assets/javascripts/plugins
+      'public/':
+          source: service
+          service: files
+          source_path: files/public/
+      'vendor/data':
+          source: service
+          service: files
+          source_path: files/vendor/data
+      'log':
+          source: local
+          source_path: shared:files/log
+      '/.bundle':
+          source: local
+          source_path: shared:files/.bundler
+  web:
+      upstream:
+          socket_family: unix
+      commands:
+          start: "RAILS_ENV=production bundle exec unicorn -l $SOCKET -E production config.ru"
+      locations:
+          "/":
+              root: "public"
+              passthru: true
+              expires: 1h
+              allow: true
+          "/assets":
+              root: "public/assets"
+              expires: 1y
+              allow: true
+          "/plugins":
+              root: "public/plugins"
+              expires: 1y
+              allow: true
+          "/images/emoji":
+              root: "public/images/emoji"
+              expires: 1y
+              allow: true
+  #crons:
+  #  auto_snapshot:
+  #    # The cron task will run everyday at 4 am (UTC)
+  #    spec: '0 4 * * *'
+  #    cmd: |
+  #      if [ "$PLATFORM_BRANCH" = master ]; then
+  #           platform snapshot:create --yes --no-wait
+  #      fi
+  #  auto_renewcert:
+  #     # Force a redeploy at 10 am (UTC) on the 1st and 15th of every month.
+  #     spec: '0 10 1,15 * *'
+  #     cmd: |
+  #       if [ "$PLATFORM_BRANCH" = master ]; then
+  #           platform redeploy --yes --no-wait
+  #       fi
+  workers:
+      sidekick:
+          size: S
+          resources:
+            base_memory: 64 # between 64 and 1024 max
+            memory_ratio: 256 # integer between 128 and 1024 max
+
+          commands:
+              start: RAILS_ENV=production bundle exec sidekiq  -c 4 -e production -q critical -q low -q default
+  

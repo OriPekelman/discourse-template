@@ -2,7 +2,19 @@
 "https://user-images.githubusercontent.com/1681963/52239617-e2683480-289c-11e9-922b-5da55472e5b4.png"
  width="300px"></a>
 
+<a href="https://console.platform.sh/projects/create-project/?template=https://github.com/OriPekelman/discourse-template&utm_campaign=deploy_on_platform?utm_medium=button&utm_source=affiliate_links&utm_content=https://github.com/OriPekelman/discourse-template" target="_blank" title="Deploy with Platform.sh"><img src="https://platform.sh/images/deploy/deploy-button-lg-blue.svg"></a>
 
+## Platform.sh Configuration
+
+Discourse uses a huge amount of memory for the assets precompile phase. So you need at least a medium plan for deployments to succeed.
+
+Also expect initial deployments to be slow. Very. Multiple minutes. If you want fast deployments, you can precompile assets locally and commit them to git.
+
+```
+platform vset -emaster env:DISCOURSE_DEVELOPER_EMAILS myemail@example.com
+platform vset env:DISCOURSE_MAXMIND_LICENSE_KEY get_a_key_from_maxmind
+platform vset -emaster env:DISCOURSE_HOSTNAME $(platform route:get --primary -P url| cut -d'/' -f3)
+```
 
 Discourse is the 100% open source discussion platform built for the next decade of the Internet. Use it as a:
 

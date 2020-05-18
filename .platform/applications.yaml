@@ -50,6 +50,8 @@
       deploy: |
           [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
           bundle exec rake db:migrate
+          # instead of setting an environment variable from the outside we
+          # should probably export here DISCOURSE_HOSTNAME
       post_deploy: |
           # To gain in performance we could potenitally only run this if
           # something changed (with an env variable like RUN_POST_DEPLOY)

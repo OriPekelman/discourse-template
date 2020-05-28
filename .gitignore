@@ -22,9 +22,8 @@ public/tombstone/*
 /cache
 /coverage/*
 
-/public/assets/*
+
 /public/tombstone/*
-/bundle/*
 
 config/discourse.pill
 config/discourse.conf

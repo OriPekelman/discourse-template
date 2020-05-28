@@ -1,0 +1,2 @@
+!function(){var t=document.getElementById("data-auto-redirect").dataset.path;setTimeout(function(){window.location.href=t},2e3)}();
+//# sourceMappingURL=/assets/auto-redirect-66b3648bcdf94d61143bb32c6575a70f89b357e08a815c7d8f0f5806d9addc4b.js.map

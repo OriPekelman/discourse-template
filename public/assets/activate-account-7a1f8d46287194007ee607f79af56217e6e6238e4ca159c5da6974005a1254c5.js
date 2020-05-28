@@ -1,0 +1,2 @@
+setTimeout(function(){var t=$("#activate-account-button");t.on("click",function(){t.prop("disabled",!0);var a=document.getElementById("data-activate-account").dataset.path;$.ajax(a).then(function(a){$("#password_confirmation").val(a.value),$("#challenge").val(a.challenge.split("").reverse().join("")),$("#activate-account-form").submit()}).fail(function(){t.prop("disabled",!1)})})},50);
+//# sourceMappingURL=/assets/activate-account-7a1f8d46287194007ee607f79af56217e6e6238e4ca159c5da6974005a1254c5.js.map
